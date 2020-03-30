@@ -25,11 +25,44 @@ public class SIM {
         // Input Setup
         Vector<String> inst = new Vector<String>();
         String[] dict = new String[8];
+
         // Take input
         inst = instReader();
         dict = dictionary(inst);
-    }
 
+        String[][] compArray = comparison(inst, dict);
+
+    }
+    public static String[][]  comparison(Vector<String> instruction, String[] dictionary) {
+        String[][] comparisonArray = new String[instruction.size()][8];
+        
+
+        for(int i = 0; i < instruction.size(); i++) {
+            for(int j = 0; j < 8; j++){
+                StringBuilder str = new StringBuilder();
+                for(int k = 0; k < 32; k++) {
+                        char xor = Character.forDigit(Character.getNumericValue(instruction.get(i).charAt(k))^Character.getNumericValue(dictionary[j].charAt(k)), 10);
+                        str.append(xor);      
+                }
+                comparisonArray[i][j] = str.toString();
+            }
+        }
+
+        //DEBUG: 
+        for(int a = 0; a < instruction.size(); a++) {
+            //DEBUG:
+            System.out.println("Comparison Entry #" + a + " " + instruction.get(a));
+            //
+            for(int b = 0; b < 8; b++){
+
+                System.out.println("Dict " + b + ": " + comparisonArray[a][b]);
+                
+            }
+        }
+        //
+
+        return comparisonArray;
+    }
     public static Vector<String> instReader() {
         Vector<String> instructions = new Vector<String>();
         try {
@@ -88,7 +121,7 @@ public class SIM {
             //
             dictionary[i] = fullDictionary.get(i).getKey();
         }
-
+        System.out.println("xxxx");
         return dictionary;
     }
 
