@@ -22,6 +22,7 @@ public class SIM {
         // Output setup
         PrintStream cout = new PrintStream("cout.txt");
         System.setOut(cout);
+
         // Input Setup
         Vector<String> inst = new Vector<String>();
         String[] dict = new String[8];
@@ -29,8 +30,23 @@ public class SIM {
         // Take input
         inst = instReader();
         dict = dictionary(inst);
-
+        // Prepare comparison strings for all instructions, and place them in an array
         String[][] compArray = comparison(inst, dict);
+        // TODO: Implement Run-Time Encoding counter
+
+        // COMPRESSION PRIORITY:
+        // 1. RLE - Refer to RLE counter
+        // 2. Direct Matching - matches dictionary entry exactly
+        // 3. 1-bit mismatch - single '1' found in whole string
+        // 4. 2-bit consecutive mismatch - single '11' found in whole string
+        // 5. Bitmask-based compression - '1's found within four bits of each other
+        // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
+        // 7. Original binary - none of the above
+
+        // for(int i = 0; i < instruction.size(); i++)
+        // {
+
+        // }
 
     }
     public static String[][]  comparison(Vector<String> instruction, String[] dictionary) {
@@ -49,13 +65,15 @@ public class SIM {
         }
 
         //DEBUG: 
+        int actual = 2;
         for(int a = 0; a < instruction.size(); a++) {
             //DEBUG:
-            System.out.println("Comparison Entry #" + a + " " + instruction.get(a));
+            
+            System.out.println("Comparison Entry #" + actual++ + " " + instruction.get(a));
             //
             for(int b = 0; b < 8; b++){
 
-                System.out.println("Dict " + b + ": " + comparisonArray[a][b]);
+                System.out.println("Dict " + String.format("%3s", Integer.toBinaryString(b)).replace(' ', '0') + ": " + comparisonArray[a][b]);
                 
             }
         }
