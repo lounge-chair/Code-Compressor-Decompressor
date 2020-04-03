@@ -14,7 +14,7 @@ public class SIM {
         // else if (args[0].equals("2")) {
         // decompression();
         // } else {
-        System.out.println("Error! Invalid command entered. Please try again!");
+        // System.out.println("Error! Invalid command entered. Please try again!");
         // }
     }
 
@@ -242,7 +242,38 @@ public class SIM {
             }
         }
 
+        // Print compressed code
+        printCompression(compressed);
     }
+    public static void printCompression(String[][] compressed) {
+        StringBuilder builder = new StringBuilder();
+
+        for(int i = 0; i < compressed.length; i++) {
+            for(int j = 0; j < 4; j++) {
+                if(compressed[i][j] != null) {
+                    builder.append(compressed[i][j]);
+                } else {
+                    break;
+                }
+            }
+        }
+
+        String compString = builder.toString();
+
+        int compLength = compString.length();
+        int compOffset = 32 - compLength % 32;
+
+        for(int k = 0; k < compLength; k++) {
+            if(k % 32 == 0) {
+                System.out.println();
+            } 
+                System.out.print(compString.charAt(k));
+        }
+        for(int c = 0; c < compOffset; c++) {
+            System.out.print("1");
+        }
+    }
+
     public static String[][]  comparison(Vector<String> instruction, String[] dictionary) {
         String[][] comparisonArray = new String[instruction.size()][8];
         
@@ -337,5 +368,4 @@ public class SIM {
         System.out.println("xxxx");
         return dictionary;
     }
-
 }
