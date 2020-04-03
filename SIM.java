@@ -31,7 +31,8 @@ public class SIM {
         inst = instReader();
         dict = dictionary(inst);
         // Prepare comparison strings for all instructions, and place them in an array
-        String[][] compArray = comparison(inst, dict);
+        String[][] compareArray = comparison(inst, dict);
+        String[][] compressed = new String[inst.size()][4];
         // TODO: Implement Run-Time Encoding counter
 
         // COMPRESSION PRIORITY:
@@ -43,10 +44,188 @@ public class SIM {
         // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
         // 7. Original binary - none of the above
 
-        // for(int i = 0; i < instruction.size(); i++)
-        // {
+        String rleCheck = "";
+        String current = "";
+        int rleCount = -1;
+        boolean rlePossible = false;
+        boolean isCompressed;
+        // Loop through each instruction
+        for(int i = 0; i < inst.size(); i++)
+        {
+            isCompressed = false;
+            // 1. RLE //
+            
+                current = inst.get(i);
+                if(!current.equals(rleCheck)) {
+                    if (rlePossible) {
+                        compressed[i-1][0] = "000";
+                        compressed[i-1][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
+                        //isCompressed = true;
+                        rlePossible = false;
+                        rleCount = -1;
+                    }
+                    rleCheck = current;
+                } else if(current.equals(rleCheck)) {
+                    rlePossible = true;
+                    isCompressed = true;
+                    if (++rleCount >= 3) 
+                    {
+                        compressed[i][0] = "000";
+                        compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
+                        isCompressed = true;
+                        rlePossible = false;
+                        rleCount = -1;
+                        rleCheck = "";
+                    }
+                }
+                // if (rleCount > 3) {
+                //     compressed[i][0] = "000";
+                //     compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
+                //     isCompressed = true;
+                //     rlePossible = false;
+                //     rleCount = 0;
+                // }
+                // } else if(rleCheck.equals(inst.get(i)) && rleCount < 4) {
+                //     rlePossible = true;
+                //     rleCount++;
+                // }
+                // if(rleCheck.equals(inst.get(i)) && rleCount < 4)
+                // if(!newInst && rleCheck.equals(inst.get(i)) && rleCount < 4) {
+                //     rlePossible = true;
+                //     rleCount++;
+                // }
+                // else if(newInst) {
+                //     rleCheck = inst.get(i);
+                //     newInst = false;
+                // } else if (rlePossible) {
+                //     compressed[i][0] = "000";
+                //     compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
+                //     isCompressed = true;
+                //     newInst = true;
+                //     rlePossible = false;
+                //     rleCount = 0;
+                // } else {
+                //     newInst = true;
+                // }
+            
+            // 2. Direct Matching - matches dictionary entry exactly
+            if(!isCompressed) {
+                for(int j = 0; j < 8; j++) {
+                    if(inst.get(i).equals(dict[j])) {
+                        compressed[i][0] = "101";
+                        compressed[i][1] = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0'); 
+                        isCompressed = true;
+                    }
+                }
+            }
 
-        // }
+            //TODO: maybe switch to else ifs?
+
+            // 3. 1-bit mismatch - single '1' found in whole string (010)
+            if(!isCompressed) {
+                // Check against each dictionary entry
+                for (int j = 0; j < 8; j++) {
+                    // Initialize local vars
+                    int oneCount = 0;
+                    String mismatchLocation = "ERROR";
+                    String dictIndex = "ERROR";
+                    // Check each char in comparison array for a '1' and count total # of '1's
+                    for (int k = 0; k < 32; k++) {
+                        if (compareArray[i][j].charAt(k) == '1') {
+                            oneCount++;
+                            mismatchLocation = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
+                            dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
+                        }
+                    }
+                    if (oneCount == 1) {
+                        compressed[i][0] = "010";
+                        compressed[i][1] = mismatchLocation;
+                        compressed[i][2] = dictIndex;
+                        isCompressed = true;
+                        break;
+                    }
+                }
+            }
+            // 4. 2-bit consecutive mismatch - single '11' found in whole string
+            if(!isCompressed) {
+                // Check against each dictionary entry
+                for (int j = 0; j < 8; j++) {
+                    // Initialize local vars
+                    int oneCount = 0;
+                    boolean oneoneFound = false;
+                    String mismatchLocation = "ERROR";
+                    String dictIndex = "ERROR";
+
+                    // Check each char in comparison array for a '11' and count total # of '1's
+                    for (int k = 0; k < 32; k++) {
+                        if (compareArray[i][j].charAt(k) == '1') {
+                            oneCount++;
+                        }
+                        if (k+1 != 32 && compareArray[i][j].substring(k, k+2).equals("11")) {
+                            oneoneFound = true;
+                            mismatchLocation = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
+                            dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
+                        }
+                    }
+                    if (oneoneFound && oneCount == 2) {
+                        compressed[i][0] = "011";
+                        compressed[i][1] = mismatchLocation;
+                        compressed[i][2] = dictIndex;
+                        isCompressed = true;
+                        break;
+                    }
+                }
+            }
+            // 5. Bitmask-based compression - '1's found within four bits of each other
+            // if(!isCompressed) {
+            //     for(int j = 0; j < 8; j++) {
+                    
+            //     }
+            // }
+            // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
+            if(!isCompressed) {
+                // Check against each dictionary entry
+                for (int j = 0; j < 8; j++) {
+                    // Initialize local vars
+                    int oneCount = 0;
+                    String mismatchLoc1 = "ERROR";
+                    String mismatchLoc2 = "ERROR";
+                    String dictIndex = "ERROR";
+                    boolean located1 = false;
+                    boolean located2 = false;
+
+                    // Check each char in comparison array for a '11' and count total # of '1's
+                    for (int k = 0; k < 32; k++) {
+                        if (!located1 && compareArray[i][j].charAt(k) == '1') {
+                            oneCount++;
+                            mismatchLoc1 = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
+                            located1 = true;
+                        } else if(located1 && !located2 && compareArray[i][j].charAt(k) == '1') {
+                            oneCount++;
+                            mismatchLoc2 = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
+                            dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
+                            located2 = true;
+                        } else if (located1 && located2 && compareArray[i][j].charAt(k) == '1'){
+                            oneCount++;
+                            break;
+                        }
+                    }
+                    if (located1 && located2 && oneCount == 2) {
+                        compressed[i][0] = "100";
+                        compressed[i][1] = mismatchLoc1;
+                        compressed[i][2] = mismatchLoc2;
+                        compressed[i][3] = dictIndex;
+                        isCompressed = true;
+                        break;
+                    }
+                }
+            }
+            // 7. Original binary - none of the above
+            if(!isCompressed) {
+                compressed[i][0] = "110";
+                compressed[i][1] = inst.get(i);
+            }
+        }
 
     }
     public static String[][]  comparison(Vector<String> instruction, String[] dictionary) {
