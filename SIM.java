@@ -14,7 +14,7 @@ public class SIM {
         // else if (args[0].equals("2")) {
         // decompression();
         // } else {
-        // System.out.println("Error! Invalid command entered. Please try again!");
+        System.out.println("Error! Invalid command entered. Please try again!");
         // }
     }
 
@@ -78,35 +78,6 @@ public class SIM {
                         rleCheck = "";
                     }
                 }
-                // if (rleCount > 3) {
-                //     compressed[i][0] = "000";
-                //     compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
-                //     isCompressed = true;
-                //     rlePossible = false;
-                //     rleCount = 0;
-                // }
-                // } else if(rleCheck.equals(inst.get(i)) && rleCount < 4) {
-                //     rlePossible = true;
-                //     rleCount++;
-                // }
-                // if(rleCheck.equals(inst.get(i)) && rleCount < 4)
-                // if(!newInst && rleCheck.equals(inst.get(i)) && rleCount < 4) {
-                //     rlePossible = true;
-                //     rleCount++;
-                // }
-                // else if(newInst) {
-                //     rleCheck = inst.get(i);
-                //     newInst = false;
-                // } else if (rlePossible) {
-                //     compressed[i][0] = "000";
-                //     compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
-                //     isCompressed = true;
-                //     newInst = true;
-                //     rlePossible = false;
-                //     rleCount = 0;
-                // } else {
-                //     newInst = true;
-                // }
             
             // 2. Direct Matching - matches dictionary entry exactly
             if(!isCompressed) {
@@ -118,9 +89,6 @@ public class SIM {
                     }
                 }
             }
-
-            //TODO: maybe switch to else ifs?
-
             // 3. 1-bit mismatch - single '1' found in whole string (010)
             if(!isCompressed) {
                 // Check against each dictionary entry
@@ -177,11 +145,58 @@ public class SIM {
                 }
             }
             // 5. Bitmask-based compression - '1's found within four bits of each other
-            // if(!isCompressed) {
-            //     for(int j = 0; j < 8; j++) {
+            if(!isCompressed) {
+                for(int j = 0; j < 8; j++) {
+                    // Initialize local vars
+                    int oneCount = 0;
+                    int subCount = 0;
+                    String startLocation = "ERROR";
+                    String dictIndex = "ERROR";
+                    Vector<String> possible = new Vector<String>();
+                    Vector<String> possibleLoc = new Vector<String>();
+
+                    // Count total # of '1's
+                    for (int k = 0; k < 32; k++) {
+                        if (compareArray[i][j].charAt(k) == '1') {
+                            oneCount++;
+                        }
+                    }
+                    //
+                    for (int k = 0; k < 28; k++) {
+                        subCount = 0;
+                        for(int m = 0; m < 4; m++) {
+                            if(compareArray[i][j].substring(k, k+4).charAt(m) == '1') {
+                                subCount++;
+                            }
+                        }
+                        if(subCount == oneCount) {
+                            possible.add(compareArray[i][j].substring(k, k+4));
+                            possibleLoc.add(String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0'));
+                            dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
+                        }
+                    }
+
+                    for(int n = 0; n < possible.size(); n++) {
+                        if (possible.get(n).charAt(0) == '1') {
+                            compressed[i][0] = "001";
+                            compressed[i][1] = possibleLoc.get(n);
+                            compressed[i][2] = possible.get(n);
+                            compressed[i][3] = dictIndex;
+                            isCompressed = true;
+                            break;
+                        }
+                    }
                     
-            //     }
-            // }
+                    
+                    // if (oneoneFound && oneCount == 2) {
+                    //     compressed[i][0] = "011";
+                    //     compressed[i][1] = mismatchLocation;
+                    //     compressed[i][2] = dictIndex;
+                    //     isCompressed = true;
+                    //     break;
+                    // }
+                }
+            }
             // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
             if(!isCompressed) {
                 // Check against each dictionary entry
@@ -260,6 +275,7 @@ public class SIM {
 
         return comparisonArray;
     }
+
     public static Vector<String> instReader() {
         Vector<String> instructions = new Vector<String>();
         try {
