@@ -50,47 +50,45 @@ public class SIM {
         boolean rlePossible = false;
         boolean isCompressed;
         // Loop through each instruction
-        for(int i = 0; i < inst.size(); i++)
-        {
+        for (int i = 0; i < inst.size(); i++) {
             isCompressed = false;
             // 1. RLE //
-            
-                current = inst.get(i);
-                if(!current.equals(rleCheck)) {
-                    if (rlePossible) {
-                        compressed[i-1][0] = "000";
-                        compressed[i-1][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
-                        //isCompressed = true;
-                        rlePossible = false;
-                        rleCount = -1;
-                    }
-                    rleCheck = current;
-                } else if(current.equals(rleCheck)) {
-                    rlePossible = true;
-                    isCompressed = true;
-                    if (++rleCount >= 3) 
-                    {
-                        compressed[i][0] = "000";
-                        compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
-                        isCompressed = true;
-                        rlePossible = false;
-                        rleCount = -1;
-                        rleCheck = "";
-                    }
+
+            current = inst.get(i);
+            if (!current.equals(rleCheck)) {
+                if (rlePossible) {
+                    compressed[i - 1][0] = "000";
+                    compressed[i - 1][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
+                    // isCompressed = true;
+                    rlePossible = false;
+                    rleCount = -1;
                 }
-            
+                rleCheck = current;
+            } else if (current.equals(rleCheck)) {
+                rlePossible = true;
+                isCompressed = true;
+                if (++rleCount >= 3) {
+                    compressed[i][0] = "000";
+                    compressed[i][1] = String.format("%2s", Integer.toBinaryString(rleCount)).replace(' ', '0');
+                    isCompressed = true;
+                    rlePossible = false;
+                    rleCount = -1;
+                    rleCheck = "";
+                }
+            }
+
             // 2. Direct Matching - matches dictionary entry exactly
-            if(!isCompressed) {
-                for(int j = 0; j < 8; j++) {
-                    if(inst.get(i).equals(dict[j])) {
+            if (!isCompressed) {
+                for (int j = 0; j < 8; j++) {
+                    if (inst.get(i).equals(dict[j])) {
                         compressed[i][0] = "101";
-                        compressed[i][1] = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0'); 
+                        compressed[i][1] = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
                         isCompressed = true;
                     }
                 }
             }
             // 3. 1-bit mismatch - single '1' found in whole string (010)
-            if(!isCompressed) {
+            if (!isCompressed) {
                 // Check against each dictionary entry
                 for (int j = 0; j < 8; j++) {
                     // Initialize local vars
@@ -115,7 +113,7 @@ public class SIM {
                 }
             }
             // 4. 2-bit consecutive mismatch - single '11' found in whole string
-            if(!isCompressed) {
+            if (!isCompressed) {
                 // Check against each dictionary entry
                 for (int j = 0; j < 8; j++) {
                     // Initialize local vars
@@ -129,7 +127,7 @@ public class SIM {
                         if (compareArray[i][j].charAt(k) == '1') {
                             oneCount++;
                         }
-                        if (k+1 != 32 && compareArray[i][j].substring(k, k+2).equals("11")) {
+                        if (k + 1 != 32 && compareArray[i][j].substring(k, k + 2).equals("11")) {
                             oneoneFound = true;
                             mismatchLocation = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
                             dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
@@ -145,8 +143,8 @@ public class SIM {
                 }
             }
             // 5. Bitmask-based compression - '1's found within four bits of each other
-            if(!isCompressed) {
-                for(int j = 0; j < 8; j++) {
+            if (!isCompressed) {
+                for (int j = 0; j < 8; j++) {
                     // Initialize local vars
                     int oneCount = 0;
                     int subCount = 0;
@@ -164,19 +162,19 @@ public class SIM {
                     //
                     for (int k = 0; k < 28; k++) {
                         subCount = 0;
-                        for(int m = 0; m < 4; m++) {
-                            if(compareArray[i][j].substring(k, k+4).charAt(m) == '1') {
+                        for (int m = 0; m < 4; m++) {
+                            if (compareArray[i][j].substring(k, k + 4).charAt(m) == '1') {
                                 subCount++;
                             }
                         }
-                        if(subCount == oneCount) {
-                            possible.add(compareArray[i][j].substring(k, k+4));
+                        if (subCount == oneCount) {
+                            possible.add(compareArray[i][j].substring(k, k + 4));
                             possibleLoc.add(String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0'));
                             dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
                         }
                     }
 
-                    for(int n = 0; n < possible.size(); n++) {
+                    for (int n = 0; n < possible.size(); n++) {
                         if (possible.get(n).charAt(0) == '1') {
                             compressed[i][0] = "001";
                             compressed[i][1] = possibleLoc.get(n);
@@ -186,19 +184,18 @@ public class SIM {
                             break;
                         }
                     }
-                    
-                    
+
                     // if (oneoneFound && oneCount == 2) {
-                    //     compressed[i][0] = "011";
-                    //     compressed[i][1] = mismatchLocation;
-                    //     compressed[i][2] = dictIndex;
-                    //     isCompressed = true;
-                    //     break;
+                    // compressed[i][0] = "011";
+                    // compressed[i][1] = mismatchLocation;
+                    // compressed[i][2] = dictIndex;
+                    // isCompressed = true;
+                    // break;
                     // }
                 }
             }
             // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
-            if(!isCompressed) {
+            if (!isCompressed) {
                 // Check against each dictionary entry
                 for (int j = 0; j < 8; j++) {
                     // Initialize local vars
@@ -215,12 +212,12 @@ public class SIM {
                             oneCount++;
                             mismatchLoc1 = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
                             located1 = true;
-                        } else if(located1 && !located2 && compareArray[i][j].charAt(k) == '1') {
+                        } else if (located1 && !located2 && compareArray[i][j].charAt(k) == '1') {
                             oneCount++;
                             mismatchLoc2 = String.format("%5s", Integer.toBinaryString(k)).replace(' ', '0');
                             dictIndex = String.format("%3s", Integer.toBinaryString(j)).replace(' ', '0');
                             located2 = true;
-                        } else if (located1 && located2 && compareArray[i][j].charAt(k) == '1'){
+                        } else if (located1 && located2 && compareArray[i][j].charAt(k) == '1') {
                             oneCount++;
                             break;
                         }
@@ -236,7 +233,7 @@ public class SIM {
                 }
             }
             // 7. Original binary - none of the above
-            if(!isCompressed) {
+            if (!isCompressed) {
                 compressed[i][0] = "110";
                 compressed[i][1] = inst.get(i);
             }
@@ -244,13 +241,22 @@ public class SIM {
 
         // Print compressed code
         printCompression(compressed);
+        // Print dictionary
+        System.out.println("\nxxxx");
+        for (int i = 0; i < 8; i++) {
+            System.out.print(dict[i]);
+            if (i != 7) {
+                System.out.println();
+            }
+        }
     }
+
     public static void printCompression(String[][] compressed) {
         StringBuilder builder = new StringBuilder();
 
-        for(int i = 0; i < compressed.length; i++) {
-            for(int j = 0; j < 4; j++) {
-                if(compressed[i][j] != null) {
+        for (int i = 0; i < compressed.length; i++) {
+            for (int j = 0; j < 4; j++) {
+                if (compressed[i][j] != null) {
                     builder.append(compressed[i][j]);
                 } else {
                     break;
@@ -263,47 +269,31 @@ public class SIM {
         int compLength = compString.length();
         int compOffset = 32 - compLength % 32;
 
-        for(int k = 0; k < compLength; k++) {
-            if(k % 32 == 0) {
+        for (int k = 0; k < compLength; k++) {
+            if (k != 0 && k % 32 == 0) {
                 System.out.println();
-            } 
-                System.out.print(compString.charAt(k));
+            }
+            System.out.print(compString.charAt(k));
         }
-        for(int c = 0; c < compOffset; c++) {
+        for (int c = 0; c < compOffset; c++) {
             System.out.print("1");
         }
     }
 
-    public static String[][]  comparison(Vector<String> instruction, String[] dictionary) {
+    public static String[][] comparison(Vector<String> instruction, String[] dictionary) {
         String[][] comparisonArray = new String[instruction.size()][8];
-        
 
-        for(int i = 0; i < instruction.size(); i++) {
-            for(int j = 0; j < 8; j++){
+        for (int i = 0; i < instruction.size(); i++) {
+            for (int j = 0; j < 8; j++) {
                 StringBuilder str = new StringBuilder();
-                for(int k = 0; k < 32; k++) {
-                        char xor = Character.forDigit(Character.getNumericValue(instruction.get(i).charAt(k))^Character.getNumericValue(dictionary[j].charAt(k)), 10);
-                        str.append(xor);      
+                for (int k = 0; k < 32; k++) {
+                    char xor = Character.forDigit(Character.getNumericValue(instruction.get(i).charAt(k))
+                            ^ Character.getNumericValue(dictionary[j].charAt(k)), 10);
+                    str.append(xor);
                 }
                 comparisonArray[i][j] = str.toString();
             }
         }
-
-        //DEBUG: 
-        int actual = 2;
-        for(int a = 0; a < instruction.size(); a++) {
-            //DEBUG:
-            
-            System.out.println("Comparison Entry #" + actual++ + " " + instruction.get(a));
-            //
-            for(int b = 0; b < 8; b++){
-
-                System.out.println("Dict " + String.format("%3s", Integer.toBinaryString(b)).replace(' ', '0') + ": " + comparisonArray[a][b]);
-                
-            }
-        }
-        //
-
         return comparisonArray;
     }
 
@@ -319,12 +309,6 @@ public class SIM {
                 instructions.add(scan.nextLine());
             }
             scan.close();
-
-            // DEBUG: print out instruction vector
-            for (int i = 0; i < instructions.size(); i++) {
-                System.out.println(instructions.get(i));
-            }
-            System.out.println("xxxx");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -357,15 +341,9 @@ public class SIM {
                 }
             }
         });
-
         for (int i = 0; i < 8; i++) {
-            // DEBUG:
-            System.out.println(fullDictionary.get(i).getKey());
-            // System.out.println("writing to array...");
-            //
             dictionary[i] = fullDictionary.get(i).getKey();
         }
-        System.out.println("xxxx");
         return dictionary;
     }
 }
