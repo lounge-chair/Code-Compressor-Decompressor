@@ -8,15 +8,169 @@ public class SIM {
     public static void main(String[] args) throws FileNotFoundException {
         // Compression
         // if (args[0].equals("1")) {
-        compression();
+        //compression();
         // }
         // Decompression
         // else if (args[0].equals("2")) {
-        // decompression();
+        decompression();
         // } else {
         // System.out.println("Error! Invalid command entered. Please try again!");
         // }
     }
+
+    public static void decompression() throws FileNotFoundException {
+        // Output setup
+        PrintStream dout = new PrintStream("dout.txt");
+        System.setOut(dout);
+
+        // Input Setup
+        String decompString = codeReader();
+        String[] dict = dictionaryReader();
+    
+        Vector<String> inst = new Vector<String>();
+        
+        int index = 0;
+        int codeLength = decompString.length();
+        int mismatchLocation = -99;
+        int dictIndex = -99;
+        int rleLength = -99;
+        String currentInst = "ERROR";
+        String mismatchString = "ERROR";
+        String instruction = "ERROR";
+        String bitmask = "ERROR";
+        String lastInstruction = "ERROR";
+
+        while(index < codeLength && !decompString.substring(index, index+3).equals("111")) {
+            currentInst = decompString.substring(index, index+3);
+            index += 3;
+            mismatchLocation = -99;
+            dictIndex = -99;
+            rleLength = -99;
+            mismatchString = "ERROR";
+            instruction = "ERROR";
+            bitmask = "ERROR";
+
+            switch(currentInst)
+            {
+                // RLE
+                case "000":
+                    rleLength = Integer.parseInt(decompString.substring(index, index + 2), 2);
+                    index+=2;
+                    for(int i = 0; i < rleLength; i++) {
+                        inst.add(lastInstruction);
+                        //instruction = lastInstruction;
+                    }
+                    instruction = lastInstruction;
+                    break;
+
+                // Bitmask
+                case "001":
+                    mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
+                    index += 5;
+                    bitmask = decompString.substring(index, index + 4);
+                    index += 4;
+                    dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
+                    index += 3;
+                    mismatchString = "";
+                    for(int i = 0; i < 4; i++) {
+                        if(bitmask.charAt(i) == '1') {
+                            if (dict[dictIndex].charAt(mismatchLocation+i) == '0') {
+                                mismatchString += "1";
+                            } else {
+                                mismatchString += "0";
+                            }
+                        } else {
+                            if (dict[dictIndex].charAt(mismatchLocation+i) == '0') {
+                                mismatchString += "0";
+                            } else {
+                                mismatchString += "1";
+                            }
+                        }
+                    }
+                    instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
+                            + dict[dictIndex].substring(mismatchLocation + 4);
+                    break;
+
+                // 1-bit mismatch
+                case "010":
+                    mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
+                    index += 5;
+                    dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
+                    index += 3;
+                    if (dict[dictIndex].charAt(mismatchLocation) == '0') {
+                        mismatchString = "1";
+                    } else {
+                        mismatchString = "0";
+                    }
+                    instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
+                            + dict[dictIndex].substring(mismatchLocation + 1);
+                    break;
+
+                // 2-bit mismatch (concurrent)
+                case "011":
+                    mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
+                    index += 5;
+                    dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
+                    index += 3;
+                    if (dict[dictIndex].charAt(mismatchLocation) == '0') {
+                        mismatchString = "1";
+                    } else {
+                        mismatchString = "0";
+                    }
+                    if (dict[dictIndex].charAt(mismatchLocation + 1) == '0') {
+                        mismatchString += "1";
+                    } else {
+                        mismatchString += "0";
+                    }
+                    instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
+                            + dict[dictIndex].substring(mismatchLocation + 2);
+                    break;
+
+                // 2-bit mismatch (anywhere)
+                case "100":
+                    break;
+
+                // Direct Matching
+                case "101":
+                    instruction = dict[Integer.parseInt(decompString.substring(index, index+3), 2)]; 
+                    index += 3;
+                    break;
+
+                // Original binaries
+                case "110":
+                    instruction = decompString.substring(index, index+32);
+                    index += 32;
+                    break;
+
+                default:
+                    System.out.println("Unknown instruction detected!");
+            }
+            // Save last instruction for RLE
+            lastInstruction = instruction;
+            inst.add(instruction);
+        }
+
+        for(String str : inst) {
+            System.out.println(str);
+        }
+        // Print dictionary
+        // System.out.println("\nxxxx");
+        // for (int i = 0; i < 8; i++) {
+        //     System.out.print(dict[i]);
+        //     if (i != 7) {
+        //         System.out.println();
+        //     }
+        // }
+
+        // 1. RLE - Refer to RLE counter
+        // 2. Direct Matching - matches dictionary entry exactly
+        // 3. 1-bit mismatch - single '1' found in whole string
+        // 4. 2-bit consecutive mismatch - single '11' found in whole string
+        // 5. Bitmask-based compression - '1's found within four bits of each other
+        // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
+        // 7. Original binary - none of the above
+    }
+
 
     public static void compression() throws FileNotFoundException {
         // Output setup
@@ -314,6 +468,60 @@ public class SIM {
         }
 
         return instructions;
+    }
+
+    public static String codeReader() {
+        Vector<String> code = new Vector<String>();
+        StringBuilder builder = new StringBuilder();
+        String current;
+        try {
+            // Input file setup
+            File compressed = new File("compressed.txt");
+            Scanner scan = new Scanner(compressed);
+
+            // Add raw binaries to instruction vector
+            while (scan.hasNextLine()) {
+                current = scan.nextLine();
+                if(!current.equals("xxxx")) {
+                    code.add(current);
+                } else {
+                    break;
+                }
+            }
+            scan.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        for(String str : code) {
+            builder.append(str);
+        }
+        return builder.toString();
+    }
+
+    public static String[] dictionaryReader() {
+        String current;
+        String[] dictionary = new String[8];
+
+        try {
+            // Input file setup
+            File compressed = new File("compressed.txt");
+            Scanner scan = new Scanner(compressed);
+
+            // Add raw binaries to instruction vector
+            while (scan.hasNextLine()) {
+                current = scan.nextLine();
+                if(current.equals("xxxx")) {
+                    for(int i = 0; i < 8; i++) {
+                        dictionary[i] = scan.nextLine();
+                    }
+                } 
+            }
+            scan.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        return dictionary;
     }
 
     public static String[] dictionary(Vector<String> instructions) {
