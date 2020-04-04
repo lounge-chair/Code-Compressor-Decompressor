@@ -6,16 +6,13 @@ import java.util.Map.Entry;
 
 public class SIM {
     public static void main(String[] args) throws FileNotFoundException {
-        // Compression
-        // if (args[0].equals("1")) {
-        //compression();
-        // }
-        // Decompression
-        // else if (args[0].equals("2")) {
+        if (args[0].equals("1")) {
+        compression();
+        } else if (args[0].equals("2")) {
         decompression();
-        // } else {
-        // System.out.println("Error! Invalid command entered. Please try again!");
-        // }
+        } else {
+        System.out.println("Error! Invalid command entered. Please try again!");
+        }
     }
 
     public static void decompression() throws FileNotFoundException {
@@ -32,10 +29,12 @@ public class SIM {
         int index = 0;
         int codeLength = decompString.length();
         int mismatchLocation = -99;
+        int mismatchLocation2 = -99;
         int dictIndex = -99;
         int rleLength = -99;
         String currentInst = "ERROR";
         String mismatchString = "ERROR";
+        String mismatchString2 = "ERROR";
         String instruction = "ERROR";
         String bitmask = "ERROR";
         String lastInstruction = "ERROR";
@@ -44,9 +43,11 @@ public class SIM {
             currentInst = decompString.substring(index, index+3);
             index += 3;
             mismatchLocation = -99;
+            mismatchLocation2 = -99;
             dictIndex = -99;
             rleLength = -99;
             mismatchString = "ERROR";
+            mismatchString2 = "ERROR";
             instruction = "ERROR";
             bitmask = "ERROR";
 
@@ -128,6 +129,25 @@ public class SIM {
 
                 // 2-bit mismatch (anywhere)
                 case "100":
+                    mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
+                    index += 5;
+                    mismatchLocation2 = Integer.parseInt(decompString.substring(index, index + 5), 2);
+                    index += 5;
+                    dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
+                    index += 3;
+                    if (dict[dictIndex].charAt(mismatchLocation) == '0') {
+                        mismatchString = "1";
+                    } else {
+                        mismatchString = "0";
+                    }
+                    if (dict[dictIndex].charAt(mismatchLocation2) == '0') {
+                        mismatchString2 = "1";
+                    } else {
+                        mismatchString2 = "0";
+                    }
+                    instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
+                            + dict[dictIndex].substring(mismatchLocation + 1, mismatchLocation2) 
+                            + mismatchString2 + dict[dictIndex].substring(mismatchLocation2 + 1);
                     break;
 
                 // Direct Matching
@@ -398,10 +418,7 @@ public class SIM {
         // Print dictionary
         System.out.println("\nxxxx");
         for (int i = 0; i < 8; i++) {
-            System.out.print(dict[i]);
-            if (i != 7) {
-                System.out.println();
-            }
+            System.out.println(dict[i]);
         }
     }
 
