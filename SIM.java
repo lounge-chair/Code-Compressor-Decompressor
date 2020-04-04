@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 
 public class SIM {
     public static void main(String[] args) throws FileNotFoundException {
+        // Accept command line argument to choose function
         if (args[0].equals("1")) {
         compression();
         } else if (args[0].equals("2")) {
@@ -23,9 +24,10 @@ public class SIM {
         // Input Setup
         String decompString = codeReader();
         String[] dict = dictionaryReader();
-    
+        // Instruction vector for printing at the end of decompression
         Vector<String> inst = new Vector<String>();
         
+        // Variables for decompression
         int index = 0;
         int codeLength = decompString.length();
         int mismatchLocation = -99;
@@ -39,9 +41,11 @@ public class SIM {
         String bitmask = "ERROR";
         String lastInstruction = "ERROR";
 
-        while(index < codeLength && !decompString.substring(index, index+3).equals("111")) {
+        while(index+3 < codeLength && !decompString.substring(index, index+3).equals("111")) {
+            // Read instruction
             currentInst = decompString.substring(index, index+3);
             index += 3;
+            // Reset vars
             mismatchLocation = -99;
             mismatchLocation2 = -99;
             dictIndex = -99;
@@ -51,36 +55,44 @@ public class SIM {
             instruction = "ERROR";
             bitmask = "ERROR";
 
+            // Based on current instruction, decompress accordingly
             switch(currentInst)
             {
                 // RLE
                 case "000":
+                    // Get # of RLE iterations
                     rleLength = Integer.parseInt(decompString.substring(index, index + 2), 2);
                     index+=2;
                     for(int i = 0; i < rleLength; i++) {
+                        // Add extra instructions
                         inst.add(lastInstruction);
-                        //instruction = lastInstruction;
                     }
+                    // Set last new instruction
                     instruction = lastInstruction;
                     break;
 
                 // Bitmask
                 case "001":
+                    // Get mismatch location
                     mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
                     index += 5;
+                    // Get bitmask location
                     bitmask = decompString.substring(index, index + 4);
                     index += 4;
+                    // Get dictionary index
                     dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
                     index += 3;
+                    // Reset string
                     mismatchString = "";
                     for(int i = 0; i < 4; i++) {
+                        // If bitmask is 1, swap bits, if not, keep them
                         if(bitmask.charAt(i) == '1') {
                             if (dict[dictIndex].charAt(mismatchLocation+i) == '0') {
                                 mismatchString += "1";
                             } else {
                                 mismatchString += "0";
                             }
-                        } else {
+                        } else { 
                             if (dict[dictIndex].charAt(mismatchLocation+i) == '0') {
                                 mismatchString += "0";
                             } else {
@@ -88,63 +100,79 @@ public class SIM {
                             }
                         }
                     }
+                    // Set new instruction
                     instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
                             + dict[dictIndex].substring(mismatchLocation + 4);
                     break;
 
                 // 1-bit mismatch
                 case "010":
+                    // Get mismatch location
                     mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
                     index += 5;
+                    // Get dictionary index
                     dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
                     index += 3;
+                    // Swap mismatched bits
                     if (dict[dictIndex].charAt(mismatchLocation) == '0') {
                         mismatchString = "1";
                     } else {
                         mismatchString = "0";
                     }
+                    // Set new instruction
                     instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
                             + dict[dictIndex].substring(mismatchLocation + 1);
                     break;
 
                 // 2-bit mismatch (concurrent)
                 case "011":
+                    // Get mismatch location
                     mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
                     index += 5;
+                    // Get dictionary index
                     dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
                     index += 3;
+                    // Swap 1st mismatched bit
                     if (dict[dictIndex].charAt(mismatchLocation) == '0') {
                         mismatchString = "1";
                     } else {
                         mismatchString = "0";
                     }
+                    // Swap 2nd mismatched bit
                     if (dict[dictIndex].charAt(mismatchLocation + 1) == '0') {
                         mismatchString += "1";
                     } else {
                         mismatchString += "0";
                     }
+                    // Set new instruction
                     instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
                             + dict[dictIndex].substring(mismatchLocation + 2);
                     break;
 
                 // 2-bit mismatch (anywhere)
                 case "100":
+                    // Get mismatch location 1
                     mismatchLocation = Integer.parseInt(decompString.substring(index, index + 5), 2);
                     index += 5;
+                    // Get mismatch location 2
                     mismatchLocation2 = Integer.parseInt(decompString.substring(index, index + 5), 2);
                     index += 5;
+                    // Get dictionary index
                     dictIndex = Integer.parseInt(decompString.substring(index, index + 3), 2);
                     index += 3;
+                    // Swap 1st mismatched bit
                     if (dict[dictIndex].charAt(mismatchLocation) == '0') {
                         mismatchString = "1";
                     } else {
                         mismatchString = "0";
                     }
+                    // Swap 2nd mismatched bit
                     if (dict[dictIndex].charAt(mismatchLocation2) == '0') {
                         mismatchString2 = "1";
                     } else {
                         mismatchString2 = "0";
                     }
+                    // Set new instruction
                     instruction = dict[dictIndex].substring(0, mismatchLocation) + mismatchString
                             + dict[dictIndex].substring(mismatchLocation + 1, mismatchLocation2) 
                             + mismatchString2 + dict[dictIndex].substring(mismatchLocation2 + 1);
@@ -152,43 +180,30 @@ public class SIM {
 
                 // Direct Matching
                 case "101":
+                    // Set new instruction based on dictionary index
                     instruction = dict[Integer.parseInt(decompString.substring(index, index+3), 2)]; 
                     index += 3;
                     break;
 
                 // Original binaries
                 case "110":
+                    // Set new instruction based on original binary
                     instruction = decompString.substring(index, index+32);
                     index += 32;
                     break;
 
                 default:
+                    // Error
                     System.out.println("Unknown instruction detected!");
             }
             // Save last instruction for RLE
             lastInstruction = instruction;
             inst.add(instruction);
         }
-
+        // Print instruction vector
         for(String str : inst) {
             System.out.println(str);
         }
-        // Print dictionary
-        // System.out.println("\nxxxx");
-        // for (int i = 0; i < 8; i++) {
-        //     System.out.print(dict[i]);
-        //     if (i != 7) {
-        //         System.out.println();
-        //     }
-        // }
-
-        // 1. RLE - Refer to RLE counter
-        // 2. Direct Matching - matches dictionary entry exactly
-        // 3. 1-bit mismatch - single '1' found in whole string
-        // 4. 2-bit consecutive mismatch - single '11' found in whole string
-        // 5. Bitmask-based compression - '1's found within four bits of each other
-        // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
-        // 7. Original binary - none of the above
     }
 
 
@@ -207,7 +222,6 @@ public class SIM {
         // Prepare comparison strings for all instructions, and place them in an array
         String[][] compareArray = comparison(inst, dict);
         String[][] compressed = new String[inst.size()][4];
-        // TODO: Implement Run-Time Encoding counter
 
         // COMPRESSION PRIORITY:
         // 1. RLE - Refer to RLE counter
@@ -218,11 +232,13 @@ public class SIM {
         // 6. 2-bit anywhere mismatch - non-consecutive '1.....1' found in whole string
         // 7. Original binary - none of the above
 
+        // Declare compression vars
         String rleCheck = "";
         String current = "";
         int rleCount = -1;
         boolean rlePossible = false;
         boolean isCompressed;
+
         // Loop through each instruction
         for (int i = 0; i < inst.size(); i++) {
             isCompressed = false;
